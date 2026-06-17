@@ -12,7 +12,7 @@
 
 metadata {
     definition(name: "Synology SRM Node", namespace: "derekosborn", author: "Derek Osborn",
-               importUrl: "https://raw.githubusercontent.com/dJOS1475/Synology-SRM-Integration/refs/heads/main/drivers/SynologySRMNode.groovy") {
+        importUrl: "https://raw.githubusercontent.com/dJOS1475/Synology-SRM-Integration/refs/heads/main/drivers/SynologySRMNode.groovy") {
         capability "PresenceSensor"
         capability "Sensor"
 
