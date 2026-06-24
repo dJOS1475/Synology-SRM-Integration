@@ -14,14 +14,15 @@
  *  Off/Fixed on tracked phones/tablets so their MAC is stable (randomised MACs are flagged ⚠).
  *
  *  Author:  Derek Osborn
- *  Version: 1.1.0  (2026-06-17)
+ *  Version: 1.1.1  (2026-06-25)
  */
 
 import groovy.transform.Field
 
-@Field static final String VERSION    = "1.1.0"
-@Field static final String CHILD_NS   = "derekosborn"
-@Field static final String CHILD_TYPE = "Synology SRM Device"
+@Field static final String VERSION     = "1.1.1"
+@Field static final String APP_NS      = "dJOS"
+@Field static final String CHILD_NS    = APP_NS
+@Field static final String CHILD_TYPE  = "Synology SRM Device"
 @Field static final String NSM_API     = "SYNO.Core.Network.NSM.Device"
 @Field static final Integer NSM_VERSION = 5
 
