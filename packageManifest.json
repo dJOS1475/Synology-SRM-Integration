@@ -1,10 +1,10 @@
 {
   "packageName": "Synology SRM Router Integration",
   "author": "Derek Osborn",
-  "version": "1.1.1",
+  "version": "1.2.1",
   "minimumHEVersion": "2.5.0",
   "dateReleased": "2026-06-17",
-  "releaseNotes": "v1.1.1  - Fixed the NameSpace errors.",
+  "releaseNotes": "v1.2.1  - Modified the Authentication process to work with HE 2.5.1.x.",
   "communityLink": "https://community.hubitat.com/t/release-synology-srm-router-integration/164624",
   "apps": [
     {
