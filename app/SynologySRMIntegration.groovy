@@ -15,11 +15,26 @@
  *
  *  Author:  Derek Osborn
  *  v1.1.1  - Fixed the NameSpace errors
+ *  v1.1.2  - Verbose [LOGIN] request/response logging + error-code lookup + "Run Diagnostics Now"
+ *            button, to help diagnose a Hubitat platform/beta-firmware regression breaking login.
+ *  v1.1.3  - Fixed a bug in the v1.1.2 diagnostics: resp.data was read twice (once to log the raw
+ *            body, once to parse it), which corrupts the second read on this platform. Now reads
+ *            the body once and parses that same captured text.
+ *  v1.2.0  - Login now sends credentials via a form-urlencoded POST body instead of a GET query
+ *            string. Root-caused a login failure on a Hubitat beta firmware (which bumped its
+ *            bundled Apache HttpClient to 5.x for HTTP/2 + TLS 1.3) to the query-string encoding
+ *            of the password differing from the previous client version, silently mangling it
+ *            while still producing a well-formed request — the router then correctly (but
+ *            misleadingly) reported "wrong password" for genuinely-correct credentials. A POST
+ *            body sidesteps that class of bug and is better practice regardless.
+ *  v1.2.1  - Removed the v1.1.2 diagnostics scaffolding (verbose [LOGIN] logging, error-code
+ *            lookup table, "Run Diagnostics Now" button) now that the fix above is confirmed
+ *            working — no longer needed. The POST-based login itself is unchanged.
  */
 
 import groovy.transform.Field
 
-@Field static final String VERSION     = "1.1.1"
+@Field static final String VERSION     = "1.2.1"
 @Field static final String CHILD_NS    = "dJOS"
 @Field static final String CHILD_TYPE  = "Synology SRM Device"
 @Field static final String NSM_API     = "SYNO.Core.Network.NSM.Device"
@@ -288,7 +303,7 @@ private List fetchDevices() {
             }
         }
     } catch (e) {
-        log.error "fetchDevices exception: ${e.message}"
+        log.error "fetchDevices exception: ${e.class?.name}: ${e.message}"
     }
     return out
 }
@@ -619,7 +634,7 @@ private Map fetchEntry(String api, Integer version, String method = "get", Map e
             }
         }
     } catch (e) {
-        log.error "${api} exception: ${e.message}"
+        log.error "${api} exception: ${e.class?.name}: ${e.message}"
     }
     return out
 }
@@ -647,15 +662,21 @@ private boolean login() {
         log.warn "Router host/username/password not set yet"
         return false
     }
+
+    // Credentials go in a form-urlencoded POST body rather than a GET query string — this avoids
+    // a class of URL-encoding bugs that can silently corrupt the password (seen on some HTTP
+    // client versions) and keeps the password out of any URL that might get logged along the way.
+    def body = [api: "SYNO.API.Auth", method: "Login", version: 2,
+                account: settings.username, passwd: settings.password, format: "sid"]
     def params = [
         uri  : baseUri(),
         path : "/webapi/auth.cgi",
-        query: [api: "SYNO.API.Auth", method: "Login", version: 2,
-                account: settings.username, passwd: settings.password, format: "sid"],
+        requestContentType: "application/x-www-form-urlencoded",
+        body : body,
         ignoreSSLIssues: true, timeout: 20
     ]
     try {
-        httpGet(params) { resp ->
+        httpPost(params) { resp ->
             def data = asMap(resp)
             if (data?.success && data?.data?.sid) {
                 state.sid = data.data.sid
