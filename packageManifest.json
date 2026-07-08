@@ -3,8 +3,8 @@
   "author": "Derek Osborn",
   "version": "1.3.0",
   "minimumHEVersion": "2.5.0",
-  "dateReleased": "2026-07-08",
-  "releaseNotes": "v1.3.0 - Fixed per-node reboot; reboot commands now work in automations.",
+  "dateReleased": "2026-06-17",
+  "releaseNotes": "v1.3.0  - Fixed per-node reboot, reboot commands now work in automations.",
   "communityLink": "https://community.hubitat.com/t/release-synology-srm-router-integration/164624",
   "apps": [
     {
