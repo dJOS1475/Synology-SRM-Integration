@@ -30,11 +30,21 @@
  *  v1.2.1  - Removed the v1.1.2 diagnostics scaffolding (verbose [LOGIN] logging, error-code
  *            lookup table, "Run Diagnostics Now" button) now that the fix above is confirmed
  *            working — no longer needed. The POST-based login itself is unchanged.
+ *  v1.2.2  - Fixed per-node reboot (two bugs). (1) The Router driver relays via its own rebootNode()
+ *            method which called parent.rebootNode() — the SAME name — and Hubitat silently drops a
+ *            device->app call when the device defines a method of that same name, so it never reached
+ *            the app. Renamed the app method to rebootMeshNode(); the relay now targets that.
+ *            (2) The reboot API call was wrong (SYNO.Mesh.Node/reboot -> error 103). Corrected to the
+ *            call the SRM UI actually makes: POST SYNO.Mesh.System/reboot v1 with node_id_list=[<id>].
+ *  v1.3.0  - Stable release. All features verified on real hardware (RT6600ax + RT2600ac, SRM 1.3.2),
+ *            including whole-router and per-node reboot. Added the Actuator capability to the Router
+ *            and Node drivers so their reboot commands are available to Rule Machine and other
+ *            automation apps. App and all three drivers unified to v1.3.0.
  */
 
 import groovy.transform.Field
 
-@Field static final String VERSION     = "1.2.1"
+@Field static final String VERSION     = "1.3.0"
 @Field static final String CHILD_NS    = "dJOS"
 @Field static final String CHILD_TYPE  = "Synology SRM Device"
 @Field static final String NSM_API     = "SYNO.Core.Network.NSM.Device"
@@ -509,22 +519,35 @@ void rebootRouter() {
 }
 
 // Reboot a single mesh node. Gated by the same "Allow Reboot" toggle as the whole-router reboot.
-void rebootNode(nodeId) {
+// NAMED rebootMeshNode (not rebootNode) on purpose: the Router driver relays via its own method
+// called rebootNode(), and if that device method calls parent.rebootNode() — the same name — Hubitat
+// silently fails to dispatch the call to this app. Different names on the two sides avoids that.
+void rebootMeshNode(nodeId) {
     if (settings.enableReboot != true) {
         log.warn "Node reboot requested but 'Allow Reboot' is disabled in the app settings — ignoring."
         return
     }
     if (nodeId == null) { log.warn "Node reboot: no node id"; return }
     if (!ensureSession()) { log.error "Node reboot aborted: no router session"; return }
-    log.warn "Rebooting mesh node ${nodeId} (SYNO.Mesh.Node reboot)…"
-    def params = entryParams("SYNO.Mesh.Node", "reboot", 1)
-    params.query << [node_id: (nodeId as int)]
+    log.warn "Rebooting mesh node ${nodeId} (SYNO.Mesh.System reboot)…"
+    // Matches exactly what the SRM web UI sends: POST SYNO.Mesh.System/reboot with a JSON
+    // node_id_list array (a single-element list here). POST form body avoids query-string encoding
+    // quirks and mirrors the router's own client.
+    def params = [
+        uri : baseUri(),
+        path: "/webapi/entry.cgi",
+        requestContentType: "application/x-www-form-urlencoded",
+        body: [api: "SYNO.Mesh.System", method: "reboot", version: 1, node_id_list: "[${nodeId}]".toString()],
+        headers: ["Cookie": "id=${state.sid}"],
+        ignoreSSLIssues: true, timeout: 25
+    ]
     try {
-        httpGet(params) { resp ->
+        httpPost(params) { resp ->
             def d = asMap(resp)
             log.warn "Node ${nodeId} reboot response: success=${d?.success} error=${d?.error}"
         }
     } catch (e) {
+        // A node reboot can drop the request connection, so an exception here is often benign.
         log.warn "Node reboot request sent (connection may drop: ${e.message})"
     }
 }

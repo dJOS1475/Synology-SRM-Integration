@@ -7,7 +7,8 @@
  *  Created automatically by the "Synology SRM Router" device — do not create manually.
  *
  *  Author:  Derek Osborn
- *  Version: 1.1.1  (2026-06-17)
+ *  Version: 1.3.0  (2026-07-08) - Per-node reboot fixes live in the app; this driver unchanged.
+ *            Unified to the 1.3.0 release.
  */
 
 metadata {
@@ -15,6 +16,7 @@ metadata {
         importUrl: "https://raw.githubusercontent.com/dJOS1475/Synology-SRM-Integration/refs/heads/main/drivers/SynologySRMNode.groovy") {
         capability "PresenceSensor"
         capability "Sensor"
+        capability "Actuator"   // exposes custom commands (reboot) to Rule Machine / automations
 
         attribute "model",            "string"
         attribute "firmware",         "string"

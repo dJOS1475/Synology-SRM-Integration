@@ -6,7 +6,7 @@ Built and tested against an **RT6600ax + RT2600ac mesh running SRM 1.3.2**. Comm
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/dJOS1475/Synology-SRM-Integration/tree/main?tab=GPL-3.0-1-ov-file)
 
-> **Version 1.1.1**
+> **Version 1.3.0** — app and all three drivers unified to a single version.
 
 <!-- Add screenshots here, e.g.:
 ![Device list](docs/devices.png)
@@ -143,6 +143,18 @@ Commands: `reboot` *(requires "Allow Reboot")*.
 ---
 
 ## Changelog
+
+**v1.3.0** — Stable release. Every feature verified on real hardware (RT6600ax + RT2600ac, SRM 1.3.2), including whole-router and per-node reboot. Added the `Actuator` capability to the Router and Node drivers so their `reboot` commands are usable in Rule Machine and other automation apps (the Device driver already had it for `pauseInternet`/`resumeInternet`). App and all three drivers unified to a single version (1.3.0).
+
+**v1.2.2** — Fixed per-node reboot, which had two bugs: (1) the Router driver's `rebootNode()` relay called `parent.rebootNode()` — the same method name on the app — and Hubitat silently drops a device→app call when the calling device defines a method of that same name (renamed the app method to `rebootMeshNode()`); and (2) the reboot API call itself was wrong — corrected to the call the SRM UI makes, `SYNO.Mesh.System` / `reboot` with `node_id_list=[<id>]`.
+
+**v1.2.1** (app only) — Removed the temporary diagnostics scaffolding (verbose login logging, error-code lookup table, "Run Diagnostics Now" button) added in v1.1.2 now that the fix below is confirmed working. No functional change.
+
+**v1.2.0** (app only) — Login now sends credentials via a POST body instead of a GET query string. Root-caused a login failure seen on a Hubitat beta firmware (which upgraded its bundled Apache HttpClient to 5.x for HTTP/2 + TLS 1.3) to the query-string encoding of the password differing from before, silently mangling a genuinely-correct password into one the router legitimately rejected. A form body avoids this class of bug.
+
+**v1.1.3** (app only) — Fixed a bug in the v1.1.2 diagnostics where the response body was read twice, corrupting the second read on some platform versions and masking the real error behind a bogus parse failure.
+
+**v1.1.2** (app only) — Added verbose `[LOGIN]` request/response logging, a Synology error-code lookup table, and a "Run Diagnostics Now" button, to help diagnose a reported Hubitat platform/beta-firmware regression that broke router login (SRM returns error code 402 — "permission denied" — on the login call).
 
 **v1.1.1** — Changed namespace to `dJOS`.
 
