@@ -40,11 +40,15 @@
  *            including whole-router and per-node reboot. Added the Actuator capability to the Router
  *            and Node drivers so their reboot commands are available to Rule Machine and other
  *            automation apps. App and all three drivers unified to v1.3.0.
+ *  v1.3.1  - The primary node's reboot (from its node child device) now routes to the whole-system
+ *            reboot (SYNO.Core.System) instead of the mesh Wi-Fi-point reboot, which the root node
+ *            doesn't support. Satellite nodes still use the mesh reboot. Also added a Refresh command
+ *            to the mesh-node child devices.
  */
 
 import groovy.transform.Field
 
-@Field static final String VERSION     = "1.3.0"
+@Field static final String VERSION     = "1.3.1"
 @Field static final String CHILD_NS    = "dJOS"
 @Field static final String CHILD_TYPE  = "Synology SRM Device"
 @Field static final String NSM_API     = "SYNO.Core.Network.NSM.Device"
@@ -483,6 +487,7 @@ def pollHealth() {
     }
 
     def primary = nodes.find { it.role == "primary" } ?: (nodes ? nodes[0] : [:])
+    state.primaryNodeId = primary?.nodeId   // used to route the primary's reboot to the whole-system API
     rd.updateHealth([
         cpu      : primary.cpu,
         memory   : primary.memory,
@@ -504,6 +509,12 @@ void rebootRouter() {
         log.warn "Reboot requested but 'Allow Reboot' is disabled in the app settings — ignoring."
         return
     }
+    doWholeRouterReboot()
+}
+
+// Whole-system reboot of the primary router (SYNO.Core.System). Assumes the caller already checked
+// the "Allow Reboot" gate.
+private void doWholeRouterReboot() {
     if (!ensureSession()) { log.error "Reboot aborted: no router session"; return }
     log.warn "Sending REBOOT to the SRM router (SYNO.Core.System)…"
     def params = entryParams("SYNO.Core.System", "reboot", 1)
@@ -518,6 +529,11 @@ void rebootRouter() {
     }
 }
 
+// True if this node id is the mesh's primary/root router (captured during the health poll).
+private boolean isPrimaryNode(nodeId) {
+    return (state.primaryNodeId != null) && ("${nodeId}" == "${state.primaryNodeId}")
+}
+
 // Reboot a single mesh node. Gated by the same "Allow Reboot" toggle as the whole-router reboot.
 // NAMED rebootMeshNode (not rebootNode) on purpose: the Router driver relays via its own method
 // called rebootNode(), and if that device method calls parent.rebootNode() — the same name — Hubitat
@@ -528,6 +544,13 @@ void rebootMeshNode(nodeId) {
         return
     }
     if (nodeId == null) { log.warn "Node reboot: no node id"; return }
+    // The primary/root node hosts the SRM controller and can't be rebooted via the mesh Wi-Fi-point
+    // API (SYNO.Mesh.System is for satellites only). Route it to the whole-system reboot instead.
+    if (isPrimaryNode(nodeId)) {
+        log.warn "Node ${nodeId} is the primary router — using the whole-system reboot instead of the mesh reboot."
+        doWholeRouterReboot()
+        return
+    }
     if (!ensureSession()) { log.error "Node reboot aborted: no router session"; return }
     log.warn "Rebooting mesh node ${nodeId} (SYNO.Mesh.System reboot)…"
     // Matches exactly what the SRM web UI sends: POST SYNO.Mesh.System/reboot with a JSON

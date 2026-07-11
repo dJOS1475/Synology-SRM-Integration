@@ -6,7 +6,7 @@ Built and tested against an **RT6600ax + RT2600ac mesh running SRM 1.3.2**. Comm
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/dJOS1475/Synology-SRM-Integration/tree/main?tab=GPL-3.0-1-ov-file)
 
-> **Version 1.3.0** — app and all three drivers unified to a single version.
+> **Version 1.3.1** — app and all three drivers share a single version.
 
 <!-- Add screenshots here, e.g.:
 ![Device list](docs/devices.png)
@@ -143,6 +143,8 @@ Commands: `reboot` *(requires "Allow Reboot")*.
 ---
 
 ## Changelog
+
+**v1.3.1** — The primary router's Reboot from its node child device now routes to the whole-system reboot (`SYNO.Core.System`) instead of the mesh Wi-Fi-point reboot, which the root node doesn't support. Satellite nodes still use the mesh reboot. (Previously, only the parent SRM Router device could reboot the main router.) Also added a Refresh command to the mesh-node child devices.
 
 **v1.3.0** — Stable release. Every feature verified on real hardware (RT6600ax + RT2600ac, SRM 1.3.2), including whole-router and per-node reboot. Added the `Actuator` capability to the Router and Node drivers so their `reboot` commands are usable in Rule Machine and other automation apps (the Device driver already had it for `pauseInternet`/`resumeInternet`). App and all three drivers unified to a single version (1.3.0).
 

@@ -11,8 +11,7 @@
  *  "Allow Reboot" is enabled in the app settings, and it reboots the whole router — use with care.
  *
  *  Author:  Derek Osborn
- *  Version: 1.3.0  (2026-07-08) - Per-node reboot relay calls the app's rebootMeshNode() (avoids a
- *            same-name device->app dispatch bug). Unified to the 1.3.0 release.
+ *  Version: 1.3.1  (2026-07-08) - Added refreshHealth() relay for node Refresh. Reboot/health logic in app.
  */
 
 metadata {
@@ -49,6 +48,10 @@ def updated()   { }
 
 def refresh() { parent?.pollHealth() }
 def reboot()  { parent?.rebootRouter() }
+
+// Relay a node child's Refresh to the app's health poll. Named refreshHealth (not refresh) so the
+// node's refresh() -> parent.refreshHealth() call doesn't collide with this device's own refresh().
+def refreshHealth() { parent?.pollHealth() }
 
 // Relay a per-node reboot from a node child up to the app. Calls the app's rebootMeshNode() — NOT
 // rebootNode() — because a same-named method on this device silently fails to dispatch to the app.

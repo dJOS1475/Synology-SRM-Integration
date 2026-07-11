@@ -7,8 +7,7 @@
  *  Created automatically by the "Synology SRM Router" device — do not create manually.
  *
  *  Author:  Derek Osborn
- *  Version: 1.3.0  (2026-07-08) - Per-node reboot fixes live in the app; this driver unchanged.
- *            Unified to the 1.3.0 release.
+ *  Version: 1.3.1  (2026-07-08) - Added a Refresh command. Reboot logic lives in the app.
  */
 
 metadata {
@@ -17,6 +16,7 @@ metadata {
         capability "PresenceSensor"
         capability "Sensor"
         capability "Actuator"   // exposes custom commands (reboot) to Rule Machine / automations
+        capability "Refresh"
 
         attribute "model",            "string"
         attribute "firmware",         "string"
@@ -44,6 +44,10 @@ def updated()   { }
 
 // Reboot just this mesh node (gated by the app's "Allow Reboot" setting).
 def reboot() { parent?.rebootNode(device.currentValue("nodeId")) }
+
+// Refresh via the Router device. Calls refreshHealth() — NOT refresh() — because this driver defines
+// its own refresh() and a same-named parent call silently fails to dispatch on Hubitat.
+def refresh() { parent?.refreshHealth() }
 
 // Called by the parent SRM Router device with a merged per-node health map.
 def setNode(Map n) {
